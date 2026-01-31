@@ -39,13 +39,14 @@ const App: React.FC = () => {
           error: null
         }));
       } else {
-        throw new Error("Could not connect to the registration server. Please try again.");
+        throw new Error("Server connection failed. If you just added environment variables, please trigger a 'Redeploy' in Vercel.");
       }
 
     } catch (err: any) {
+      console.error("Form Submission Exception:", err);
       setState(prev => ({
         ...prev,
-        error: err.message || "Submission failed. Please check your internet connection.",
+        error: err.message || "Connection failed. Please check your internet and WordPress plugin status.",
         showSuccessMessage: false
       }));
     } finally {
@@ -69,8 +70,11 @@ const App: React.FC = () => {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-md px-6 animate-in slide-in-from-top-4 duration-300">
           <div className="bg-red-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-red-500">
             <i className="fa-solid fa-circle-xmark text-xl"></i>
-            <p className="font-bold flex-1 text-sm">{state.error}</p>
-            <button onClick={() => setState(prev => ({ ...prev, error: null }))} className="opacity-70 hover:opacity-100">
+            <div className="flex-1">
+              <p className="font-bold text-sm">Submission Failed</p>
+              <p className="text-[11px] opacity-90 leading-tight">{state.error}</p>
+            </div>
+            <button onClick={() => setState(prev => ({ ...prev, error: null }))} className="opacity-70 hover:opacity-100 p-2">
               <i className="fa-solid fa-xmark"></i>
             </button>
           </div>
@@ -84,10 +88,10 @@ const App: React.FC = () => {
              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <i className="fa-solid fa-check text-3xl"></i>
              </div>
-             <h4 className="text-2xl font-black text-slate-800 mb-3">Submission Success!</h4>
+             <h4 className="text-2xl font-black text-slate-800 mb-3">Application Received!</h4>
              <p className="text-slate-600 mb-8 leading-relaxed">
                Thank you, <span className="font-bold text-slate-800">{state.lastSubmittedData?.name}</span>. 
-               Your data for <span className="font-bold text-slate-800">{state.lastSubmittedData?.location}</span> has been registered.
+               Your solar assessment for <span className="font-bold text-slate-800">{state.lastSubmittedData?.location}</span> has been saved to the dashboard.
              </p>
              <button 
                onClick={resetForm}
@@ -101,7 +105,7 @@ const App: React.FC = () => {
 
       <main className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#1e3a5f] mb-4">Solar Calculator</h1>
+          <h1 className="text-3xl font-bold text-[#1e3a5f] mb-2">Solar Calculator</h1>
         </header>
 
         <div className="relative">
@@ -113,14 +117,14 @@ const App: React.FC = () => {
           
           {state.loading && (
             <div className="absolute inset-0 z-50 bg-white/70 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center text-center p-10">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <h4 className="text-xl font-bold text-slate-800">Saving Application...</h4>
+              <div className="w-12 h-12 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin mb-4"></div>
+              <h4 className="text-xl font-bold text-[#1e3a5f]">Saving Details...</h4>
             </div>
           )}
         </div>
 
         <footer className="mt-12 text-center text-slate-400 text-xs font-medium">
-          <p>© 2024 Solar Tech Advisor. Leads are processed securely via WordPress REST API.</p>
+          <p>© 2024 Solar Tech. Leads are processed securely via WordPress REST API.</p>
         </footer>
       </main>
     </div>
