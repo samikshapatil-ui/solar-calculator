@@ -2,33 +2,29 @@
 import { SolarInputData } from "../types";
 
 /**
- * Communicates with the WordPress REST API.
+ * Communicates with the WordPress REST API at Vidyut Nation.
  */
 export const saveLeadToWordPress = async (data: SolarInputData): Promise<{success: boolean, url: string, error?: string}> => {
   // 1. Resolve the Base URL
   // @ts-ignore
-  const envWpUrl = import.meta.env?.VITE_WP_URL;
-  // @ts-ignore
-  const processWpUrl = typeof process !== 'undefined' ? (process.env?.VITE_WP_URL || process.env?.process?.env?.VITE_WP_URL) : undefined;
+  const envWpUrl = import.meta.env?.VITE_WP_URL || process.env?.VITE_WP_URL;
   
-  const rawWpUrl = envWpUrl || processWpUrl || '';
-  
-  if (!rawWpUrl) {
+  if (!envWpUrl) {
     return { 
       success: false, 
-      url: 'NOT_FOUND', 
-      error: "VITE_WP_URL is missing. Please add it to Vercel and REDEPLOY your project." 
+      url: 'MISSING', 
+      error: "VITE_WP_URL is not set in Vercel settings." 
     };
   }
 
-  // 2. Clean up the URL
-  let baseUrl = rawWpUrl.trim().replace(/\/+$/, "");
+  // 2. Format URL correctly
+  let baseUrl = envWpUrl.trim().replace(/\/+$/, "");
   if (!baseUrl.toLowerCase().includes('/wp-json')) {
     baseUrl = `${baseUrl}/wp-json`;
   }
   
   const endpoint = `${baseUrl}/solar-ai/v1/save-lead`;
-  
+
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -42,12 +38,20 @@ export const saveLeadToWordPress = async (data: SolarInputData): Promise<{succes
 
     if (!response.ok) {
       const text = await response.text();
-      return { success: false, url: endpoint, error: `Server responded with ${response.status}: ${text.substring(0, 50)}` };
+      return { 
+        success: false, 
+        url: endpoint, 
+        error: `Server error (${response.status}). Ensure the 'Solar AI Advisor' plugin is active on WordPress.` 
+      };
     }
 
     const result = await response.json();
     return { success: !!(result && (result.success || result.id)), url: endpoint };
   } catch (error: any) {
-    return { success: false, url: endpoint, error: error.message || "Network connection refused." };
+    return { 
+      success: false, 
+      url: endpoint, 
+      error: "Network failure. Check if CORS is enabled on your WordPress site or if the URL is blocked." 
+    };
   }
 };
