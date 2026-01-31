@@ -3,13 +3,13 @@ import { SolarInputData } from "../types";
 
 /**
  * Communicates with the WordPress REST API.
- * Prioritizes VITE_WP_URL from environment variables.
+ * Prioritizes the environment variable VITE_WP_URL set in Vercel.
  */
 export const saveLeadToWordPress = async (data: SolarInputData): Promise<boolean> => {
-  // Check multiple possible sources for the WP URL (Vite standard and Process define)
+  // Check multiple sources for the WordPress URL
   const externalWpUrl = 
     (import.meta as any).env?.VITE_WP_URL || 
-    (process.env as any).VITE_WP_URL ||
+    (process.env as any).VITE_WP_URL || 
     '';
     
   const wpSettings = (window as any).wpApiSettings;
@@ -17,22 +17,29 @@ export const saveLeadToWordPress = async (data: SolarInputData): Promise<boolean
   let rootUrl = '';
   let nonce = '';
 
-  if (externalWpUrl) {
-    // If using external URL (like on Vercel)
-    rootUrl = externalWpUrl.endsWith('/') ? externalWpUrl : `${externalWpUrl}/`;
-  } else if (wpSettings) {
-    // If embedded directly inside WordPress
-    rootUrl = wpSettings.root || '/wp-json/';
+  if (externalWpUrl && externalWpUrl.trim() !== '') {
+    // Standardize URL: ensure it ends with /wp-json/
+    let base = externalWpUrl.trim();
+    if (!base.includes('/wp-json')) {
+      base = base.endsWith('/') ? `${base}wp-json/` : `${base}/wp-json/`;
+    } else {
+      base = base.endsWith('/') ? base : `${base}/`;
+    }
+    rootUrl = base;
+  } else if (wpSettings && wpSettings.root) {
+    // Fallback for embedded mode
+    rootUrl = wpSettings.root;
     nonce = wpSettings.nonce || '';
   } else {
-    // Local development fallback
-    console.warn("No WordPress URL found. Running in Dev Mode.");
-    console.log("Payload:", data);
+    // Local dev fallback
+    console.warn("No WordPress URL configured. Leads will not be saved.");
+    console.log("Lead Data Payload:", data);
     return true; 
   }
 
   try {
     const endpoint = `${rootUrl}solar-ai/v1/save-lead`;
+    console.debug("Attempting to save lead to:", endpoint);
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -44,14 +51,15 @@ export const saveLeadToWordPress = async (data: SolarInputData): Promise<boolean
     });
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      console.error("WP API Error:", errData);
+      const errorText = await response.text();
+      console.error("WordPress API rejected the lead:", errorText);
       return false;
     }
 
-    return true;
+    const result = await response.json();
+    return !!result.success;
   } catch (error) {
-    console.error("Network error saving lead:", error);
+    console.error("Network error connecting to WordPress:", error);
     return false;
   }
 };
