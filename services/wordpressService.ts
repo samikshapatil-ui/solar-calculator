@@ -3,35 +3,32 @@ import { SolarInputData } from "../types";
 
 /**
  * Communicates with the WordPress REST API.
- * Uses VITE_WP_URL from Vercel environment variables.
  */
-export const saveLeadToWordPress = async (data: SolarInputData): Promise<boolean> => {
-  // 1. Resolve the Base URL from Vite or Process env
-  // @ts-ignore - Vite env
+export const saveLeadToWordPress = async (data: SolarInputData): Promise<{success: boolean, url: string, error?: string}> => {
+  // 1. Resolve the Base URL
+  // @ts-ignore
   const envWpUrl = import.meta.env?.VITE_WP_URL;
-  // @ts-ignore - Process env fallback
-  const processWpUrl = typeof process !== 'undefined' ? process.env?.VITE_WP_URL : undefined;
+  // @ts-ignore
+  const processWpUrl = typeof process !== 'undefined' ? (process.env?.VITE_WP_URL || process.env?.process?.env?.VITE_WP_URL) : undefined;
   
   const rawWpUrl = envWpUrl || processWpUrl || '';
   
   if (!rawWpUrl) {
-    console.error("CONFIG ERROR: VITE_WP_URL is empty. Did you redeploy after adding the env var in Vercel?");
-    return false;
+    return { 
+      success: false, 
+      url: 'NOT_FOUND', 
+      error: "VITE_WP_URL is missing. Please add it to Vercel and REDEPLOY your project." 
+    };
   }
 
   // 2. Clean up the URL
-  // Remove trailing slashes and then check if /wp-json is already present
   let baseUrl = rawWpUrl.trim().replace(/\/+$/, "");
-  
   if (!baseUrl.toLowerCase().includes('/wp-json')) {
     baseUrl = `${baseUrl}/wp-json`;
   }
   
-  // 3. Final Endpoint construction
   const endpoint = `${baseUrl}/solar-ai/v1/save-lead`;
   
-  console.log(">>> ATTEMPTING POST TO:", endpoint);
-
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -44,16 +41,13 @@ export const saveLeadToWordPress = async (data: SolarInputData): Promise<boolean
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`SERVER REJECTED (${response.status}):`, errorText);
-      return false;
+      const text = await response.text();
+      return { success: false, url: endpoint, error: `Server responded with ${response.status}: ${text.substring(0, 50)}` };
     }
 
     const result = await response.json();
-    console.log(">>> SERVER SUCCESS:", result);
-    return !!(result && (result.success || result.id));
+    return { success: !!(result && (result.success || result.id)), url: endpoint };
   } catch (error: any) {
-    console.error(">>> FETCH FAILED (Network/CORS):", error);
-    return false;
+    return { success: false, url: endpoint, error: error.message || "Network connection refused." };
   }
 };
