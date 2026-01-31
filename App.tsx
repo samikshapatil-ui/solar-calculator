@@ -69,13 +69,13 @@ const App: React.FC = () => {
              <h4 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Application Received!</h4>
              <p className="text-slate-600 text-lg mb-8 leading-relaxed">
                Thank you, <span className="font-bold text-slate-900">{state.lastSubmittedData?.name}</span>. 
-               Your rooftop data has been submitted successfully to our dashboard.
+               One of our solar engineers will contact you shortly.
              </p>
              <button 
                onClick={resetForm}
                className="w-full bg-[#1e3a5f] hover:bg-[#162a45] text-white font-bold py-4 rounded-xl transition-all shadow-lg text-lg"
              >
-               New Calculation
+               Got it!
              </button>
           </div>
         </div>
