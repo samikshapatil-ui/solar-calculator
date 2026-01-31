@@ -2,14 +2,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SolarInputData, AIAdviceResponse, GroundingSource } from "../types";
 
+// Get solar engineering advice using Gemini API with Search Grounding
 export const getSolarAIAdvice = async (data: SolarInputData): Promise<AIAdviceResponse> => {
-  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
-  
-  if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY' || apiKey.length < 10) {
-    throw new Error("AUTH_ERROR: Invalid or missing API Key.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  // Use the API key directly from process.env.API_KEY as per instructions
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const systemInstruction = `You are a technical solar analyst for the Indian market. 
 Provide informational engineering assessments based on rooftop metrics.
@@ -47,19 +43,27 @@ Output must be strictly valid JSON.`;
       },
     });
 
+    // Access text property directly (it is a getter, not a method)
     const text = response.text;
     if (!text) throw new Error("EMPTY_AI_RESPONSE");
     
     const parsed: AIAdviceResponse = JSON.parse(text);
     const sources: GroundingSource[] = [];
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     
+    // Extract search grounding sources from groundingMetadata if available
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
       chunks.forEach((chunk: any) => {
-        if (chunk.web?.uri) sources.push({ title: chunk.web.title || "Reference", uri: chunk.web.uri });
+        if (chunk.web?.uri) {
+          sources.push({ 
+            title: chunk.web.title || "Reference", 
+            uri: chunk.web.uri 
+          });
+        }
       });
     }
 
+    // Return combined parsed JSON and grounding sources
     return { 
       ...parsed, 
       sources: Array.from(new Map(sources.map(s => [s.uri, s])).values()) 
